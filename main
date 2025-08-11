@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advanced Calculator</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: #282c34;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #eee;
+  }
+  .calculator {
+    background: #1e2127;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+    width: 350px;
+  }
+  .display {
+    background: #121417;
+    color: #f8f8f2;
+    font-size: 2.5rem;
+    padding: 15px 20px;
+    border-radius: 10px;
+    text-align: right;
+    user-select: none;
+    min-height: 60px;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+  .buttons {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  button {
+    padding: 20px;
+    font-size: 1.3rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+    color: #eee;
+    background: #3b3f4a;
+    box-shadow: inset 0 -4px #2a2d35;
+  }
+  button.operator {
+    background: #ff9500;
+    color: white;
+    box-shadow: inset 0 -4px #cc7a00;
+  }
+  button.operator:hover {
+    background: #e08900;
+  }
+  button.control {
+    background: #6c757d;
+    box-shadow: inset 0 -4px #565e64;
+  }
+  button.control:hover {
+    background: #5a6268;
+  }
+  button.zero {
+    grid-column: span 2;
+  }
+  button:hover {
+    filter: brightness(110%);
+  }
+</style>
+</head>
+<body>
+  <div class="calculator" role="application" aria-label="Calculator">
+    <div id="display" class="display" aria-live="polite" aria-atomic="true">0</div>
+    <div class="buttons">
+      <button class="control" data-action="clear" aria-label="Clear all">AC</button>
+      <button class="control" data-action="delete" aria-label="Delete last">DEL</button>
+      <button class="operator" data-operator="/">÷</button>
+      <button class="operator" data-operator="*">×</button>
+
+      <button data-number="7">7</button>
+      <button data-number="8">8</button>
+      <button data-number="9">9</button>
+      <button class="operator" data-operator="-">−</button>
+
+      <button data-number="4">4</button>
+      <button data-number="5">5</button>
+      <button data-number="6">6</button>
+      <button class="operator" data-operator="+">+</button>
+
+      <button data-number="1">1</button>
+      <button data-number="2">2</button>
+      <button data-number="3">3</button>
+      <button data-action="calculate" aria-label="Equals">=</button>
+
+      <button class="zero" data-number="0">0</button>
+      <button data-number=".">.</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const display = document.getElementById('display');
+      let currentInput = '0';
+      let operator = null;
+      let previousInput = null;
+      let resetNext = false;
+
+      function updateDisplay() {
+        display.textContent = currentInput;
+      }
+
+      function appendNumber(num) {
+        if (resetNext) {
+          currentInput = num === '.' ? '0.' : num;
+          resetNext = false;
+        } else {
+          if (num === '.' && currentInput.includes('.')) return;
+          if (currentInput === '0' && num !== '.') currentInput = num;
+          else currentInput += num;
+        }
+        updateDisplay();
+      }
+
+      function chooseOperator(op) {
+        if (operator !== null) {
+          calculate();
+        }
+        previousInput = currentInput;
+        operator = op;
+        resetNext = true;
+      }
+
+      function calculate() {
+        if (operator === null || resetNext) return;
+        let result;
+        const prev = parseFloat(previousInput);
+        const current = parseFloat(currentInput);
+        if (isNaN(prev) || isNaN(current)) return;
+
+        switch (operator) {
+          case '+': result = prev + current; break;
+          case '-': result = prev - current; break;
+          case '*': result = prev * current; break;
+          case '/': 
+            if (current === 0) {
+              alert("Error: Division by zero");
+              clearAll();
+              return;
+            }
+            result = prev / current;
+            break;
+          default: return;
+        }
+        currentInput = String(Number(result.toFixed(10))); // avoid floating precision errors
+        operator = null;
+        previousInput = null;
+        resetNext = true;
+        updateDisplay();
+      }
+
+      function clearAll() {
+        currentInput = '0';
+        operator = null;
+        previousInput = null;
+        resetNext = false;
+        updateDisplay();
+      }
+
+      function deleteLast() {
+        if (resetNext) return;
+        if (currentInput.length === 1) {
+          currentInput = '0';
+        } else {
+          currentInput = currentInput.slice(0, -1);
+        }
+        updateDisplay();
+      }
+
+      // Button clicks
+      document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+          if (button.dataset.number !== undefined) {
+            appendNumber(button.dataset.number);
+          } else if (button.dataset.operator !== undefined) {
+            chooseOperator(button.dataset.operator);
+          } else if (button.dataset.action === 'clear') {
+            clearAll();
+          } else if (button.dataset.action === 'delete') {
+            deleteLast();
+          } else if (button.dataset.action === 'calculate') {
+            calculate();
+          }
+        });
+      });
+
+      // Keyboard support
+      window.addEventListener('keydown', e => {
+        if (e.key >= '0' && e.key <= '9') {
+          appendNumber(e.key);
+        } else if (e.key === '.') {
+          appendNumber('.');
+        } else if (['+', '-', '*', '/'].includes(e.key)) {
+          chooseOperator(e.key);
+        } else if (e.key === 'Enter' || e.key === '=') {
+          e.preventDefault();
+          calculate();
+        } else if (e.key === 'Backspace') {
+          deleteLast();
+        } else if (e.key === 'Escape') {
+          clearAll();
+        }
+      });
+
+      updateDisplay();
+    })();
+  </script>
+</body>
+</html>
